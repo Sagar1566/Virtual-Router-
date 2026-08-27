@@ -1,0 +1,8 @@
+.idea
+dist
+deploy.sh
+node_modules
+ubuntu-router
+ubuntu-router.exe
+*.exe~
+*.log
