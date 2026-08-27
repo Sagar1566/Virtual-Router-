@@ -44,34 +44,49 @@ sudo apt install wireguard wireguard-tools
 sudo apt install dhcpcd
 ```
 
-## Quick Start
+## Quick Start (Recommended - All-in-One Script)
 
-### 1. Download and Install
+The fastest and easiest way to run the project is using the automated runner script [`./start.sh`](start.sh). It automatically checks, downloads, and sets up all missing dependencies (Go compiler, Node.js, npm), builds the React frontend and Go backend, and launches the server in a single command.
 
 ```bash
-# Download the latest release for your architecture
-wget https://github.com/iodesystems/ubuntu-router/releases/latest/download/ubuntu-router-linux-arm64
-chmod +x ubuntu-router-linux-arm64
-sudo mv ubuntu-router-linux-arm64 /usr/local/bin/ubuntu-router
+# Make script executable (if needed) and run
+chmod +x start.sh
+./start.sh
 ```
 
-### 2. Run
+### Runner Script Options
+
+| Command | Description |
+|---|---|
+| `./start.sh` | Run in safe **Dry-Run mode** (Default, no root required) |
+| `sudo ./start.sh --live` | Run in **Live mode** with real networking changes (Requires root) |
+| `./start.sh --rebuild` | Force a clean rebuild of the web frontend and backend binary |
+| `./start.sh --port 9090` | Launch the web interface on a custom HTTP port |
+
+---
+
+### Accessing the Web UI
+
+After running `./start.sh`, open **`http://localhost:8080`** (or `http://<router-ip>:8080`) in your browser.
+* The admin password is displayed on the console at startup and saved in `config.json.password`.
+
+---
+
+### Alternative: Manual Download & Binary Installation
 
 ```bash
-# First run - will auto-detect interfaces and create config
+# 1. Download the latest release for your architecture
+wget https://github.com/iodesystems/ubuntu-router/releases/latest/download/ubuntu-router-linux-amd64
+chmod +x ubuntu-router-linux-amd64
+sudo mv ubuntu-router-linux-amd64 /usr/local/bin/ubuntu-router
+
+# 2. Run manually
 sudo ubuntu-router
-
-# Or with a specific config file
-sudo ubuntu-router -config /etc/ubuntu-router/config.json
 ```
 
-### 3. Access Web UI
+### Install as Systemd Service
 
-Open `http://<router-ip>:8080` in your browser. The admin password is displayed on the console at startup.
-
-### 4. Install as Service
-
-From the web UI, go to **Settings > Service** and click "Install Service" to set up systemd auto-start.
+From the web UI, go to **Settings > Service** and click "Install Service" to set up systemd auto-start on boot.
 
 ## Configuration
 
