@@ -220,10 +220,28 @@ func (r *DryRunCommandRunner) Run(ctx context.Context, name string, args ...stri
 	cmdStr := fmt.Sprintf("%s %v", name, args)
 	r.log = append(r.log, cmdStr)
 
-	// For some read-only commands, actually run them
+	// For read-only inspection commands, run them safely
 	switch name {
-	case "ip", "cat", "wg":
-		if len(args) > 0 && (args[0] == "link" || args[0] == "addr" || args[0] == "route" || args[0] == "show") {
+	case "ip":
+		isReadOnly := false
+		for _, arg := range args {
+			if arg == "show" || arg == "list" {
+				isReadOnly = true
+			}
+			if arg == "set" || arg == "add" || arg == "del" || arg == "delete" || arg == "flush" {
+				isReadOnly = false
+				break
+			}
+		}
+		if isReadOnly {
+			cmd := exec.CommandContext(ctx, name, args...)
+			return cmd.CombinedOutput()
+		}
+	case "cat":
+		cmd := exec.CommandContext(ctx, name, args...)
+		return cmd.CombinedOutput()
+	case "wg":
+		if len(args) > 0 && args[0] == "show" {
 			cmd := exec.CommandContext(ctx, name, args...)
 			return cmd.CombinedOutput()
 		}

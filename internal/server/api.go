@@ -773,13 +773,25 @@ func (s *Server) handleAPIWireGuardPeers(w http.ResponseWriter, r *http.Request)
 		}
 
 		// Get server's public key
-		status, err := s.wireguard.GetStatus(ctx)
-		if err != nil {
-			writeError(w, http.StatusInternalServerError, err.Error())
-			return
+		serverPubKey := ""
+		if status, err := s.wireguard.GetStatus(ctx); err == nil && status.PublicKey != "" {
+			serverPubKey = status.PublicKey
+		} else if s.config.WireGuard.PrivateKey != "" {
+			if pk, err := s.wireguard.GetPublicKeyFromPrivate(ctx, s.config.WireGuard.PrivateKey); err == nil {
+				serverPubKey = pk
+			}
+		}
+		if serverPubKey == "" {
+			priv, pub, err := wireguard.GenerateKeyPair()
+			if err != nil {
+				writeError(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+			s.config.WireGuard.PrivateKey = priv
+			serverPubKey = pub
 		}
 
-		clientConfig, err := s.wireguard.GenerateClientConfig(ctx, s.config.WireGuard, req.Name, req.ServerEndpoint, status.PublicKey)
+		clientConfig, err := s.wireguard.GenerateClientConfig(ctx, s.config.WireGuard, req.Name, req.ServerEndpoint, serverPubKey)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, err.Error())
 			return

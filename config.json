@@ -1,0 +1,71 @@
+{
+  "listen_addr": ":8080",
+  "wans": null,
+  "lan_bridge": "br0",
+  "lan_addresses": [
+    "192.168.2.1/24"
+  ],
+  "lan_ports": [
+    "enp2s0"
+  ],
+  "dhcp_enabled": true,
+  "dhcp_start": "192.168.2.100",
+  "dhcp_end": "192.168.2.200",
+  "dhcp_lease": "24h",
+  "dns_enabled": true,
+  "dns_upstream": [
+    "8.8.8.8",
+    "1.1.1.1"
+  ],
+  "dns_local_zone": "lan",
+  "dns_hosts_path": "/etc/hosts.ubuntu-router",
+  "dns_config_path": "/etc/dnsmasq.d/ubuntu-router-dns.conf",
+  "dhcp_config_path": "/etc/dnsmasq.d/ubuntu-router-dhcp.conf",
+  "dns_entries": null,
+  "dhcp_reservations": null,
+  "wifi_interfaces": null,
+  "wireguard": {
+    "enabled": false,
+    "interface": "wg0",
+    "listen_port": 51820,
+    "private_key": "WHDtBFtoDGU4LIF1OrCjbcIzCPTumXcRiQwFtKqsO2k=",
+    "address": "10.0.0.1/24",
+    "dns": "",
+    "config_path": "/etc/wireguard/wg0.conf",
+    "route_all_traffic": false,
+    "route_lan": false,
+    "lan_subnets": null,
+    "peers": [
+      {
+        "name": "test-laptop",
+        "public_key": "[dry-run] wg [pubkey] (stdin: 21 bytes)",
+        "allowed_ips": [
+          "10.0.0.2/32"
+        ]
+      }
+    ]
+  },
+  "wireguard_p2p": {
+    "tunnels": []
+  },
+  "firewall_enabled": true,
+  "port_forwards": null,
+  "firewall_rules": null,
+  "services": {
+    "enabled": false,
+    "services": []
+  },
+  "notifications": {
+    "enabled": true,
+    "server": "https://ntfy.sh",
+    "topic": "",
+    "token": "",
+    "username": "",
+    "password": "",
+    "notify_wifi_clients": true,
+    "notify_health_checks": true,
+    "notify_wan_changes": true,
+    "notify_vpn_peers": true,
+    "notify_system_events": true
+  }
+}

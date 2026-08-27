@@ -16,6 +16,7 @@ import (
 
 	"github.com/iodesystems/ubuntu-router/internal/config"
 	"github.com/iodesystems/ubuntu-router/internal/system"
+	"golang.org/x/crypto/curve25519"
 )
 
 // PeerStatus represents the live status of a WireGuard peer
@@ -72,8 +73,8 @@ func New(fs system.FileSystem, runner system.CommandRunner, configPath, ifaceNam
 // GenerateKeyPair generates a new WireGuard key pair
 func GenerateKeyPair() (privateKey, publicKey string, err error) {
 	// Generate 32 bytes of random data for private key
-	privBytes := make([]byte, 32)
-	if _, err := rand.Read(privBytes); err != nil {
+	var privBytes [32]byte
+	if _, err := rand.Read(privBytes[:]); err != nil {
 		return "", "", fmt.Errorf("failed to generate random bytes: %w", err)
 	}
 
@@ -82,45 +83,55 @@ func GenerateKeyPair() (privateKey, publicKey string, err error) {
 	privBytes[31] &= 127
 	privBytes[31] |= 64
 
-	privateKey = base64.StdEncoding.EncodeToString(privBytes)
+	privateKey = base64.StdEncoding.EncodeToString(privBytes[:])
 
 	// Generate public key from private key using curve25519
-	// For simplicity, we'll use wg command to generate the public key
-	return privateKey, "", nil
+	var pubBytes [32]byte
+	curve25519.ScalarBaseMult(&pubBytes, &privBytes)
+	publicKey = base64.StdEncoding.EncodeToString(pubBytes[:])
+
+	return privateKey, publicKey, nil
 }
 
-// GenerateKeyPairWithWg generates a key pair using wg command
+// GenerateKeyPairWithWg generates a key pair using wg command, with pure-Go fallback
 func (m *Manager) GenerateKeyPairWithWg(ctx context.Context) (privateKey, publicKey string, err error) {
 	// Generate private key
 	privOut, err := m.runner.Run(ctx, "wg", "genkey")
-	if err != nil {
-		return "", "", fmt.Errorf("failed to generate private key: %w", err)
+	if err == nil {
+		privateKey = strings.TrimSpace(string(privOut))
+		pubOut, err := m.runner.RunWithStdin(ctx, strings.NewReader(privateKey), "wg", "pubkey")
+		if err == nil {
+			return privateKey, strings.TrimSpace(string(pubOut)), nil
+		}
 	}
-	privateKey = strings.TrimSpace(string(privOut))
-
-	// Generate public key from private key
-	pubOut, err := m.runner.RunWithStdin(ctx, strings.NewReader(privateKey), "wg", "pubkey")
-	if err != nil {
-		return "", "", fmt.Errorf("failed to generate public key: %w", err)
-	}
-	publicKey = strings.TrimSpace(string(pubOut))
-
-	return privateKey, publicKey, nil
+	return GenerateKeyPair()
 }
 
 // GeneratePresharedKey generates a preshared key
 func (m *Manager) GeneratePresharedKey(ctx context.Context) (string, error) {
 	out, err := m.runner.Run(ctx, "wg", "genpsk")
-	if err != nil {
+	if err == nil {
+		return strings.TrimSpace(string(out)), nil
+	}
+	pskBytes := make([]byte, 32)
+	if _, err := rand.Read(pskBytes); err != nil {
 		return "", fmt.Errorf("failed to generate preshared key: %w", err)
 	}
-	return strings.TrimSpace(string(out)), nil
+	return base64.StdEncoding.EncodeToString(pskBytes), nil
 }
 
-// GetPublicKeyFromPrivate derives public key from a private key using wg pubkey
+// GetPublicKeyFromPrivate derives public key from a private key using curve25519 / wg pubkey
 func (m *Manager) GetPublicKeyFromPrivate(ctx context.Context, privateKey string) (string, error) {
 	if privateKey == "" {
 		return "", fmt.Errorf("no private key provided")
+	}
+	privBytes, err := base64.StdEncoding.DecodeString(privateKey)
+	if err == nil && len(privBytes) == 32 {
+		var priv [32]byte
+		var pub [32]byte
+		copy(priv[:], privBytes)
+		curve25519.ScalarBaseMult(&pub, &priv)
+		return base64.StdEncoding.EncodeToString(pub[:]), nil
 	}
 	pubOut, err := m.runner.RunWithStdin(ctx, strings.NewReader(privateKey), "wg", "pubkey")
 	if err != nil {

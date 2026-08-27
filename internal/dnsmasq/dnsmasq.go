@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"os"
 	"regexp"
 	"sort"
 	"strings"
@@ -250,6 +251,9 @@ func (m *Manager) GetLeases() ([]Lease, error) {
 
 	data, err := m.fs.ReadFile(m.leasesPath)
 	if err != nil {
+		if os.IsNotExist(err) {
+			return []Lease{}, nil
+		}
 		return nil, fmt.Errorf("failed to read leases file: %w", err)
 	}
 
